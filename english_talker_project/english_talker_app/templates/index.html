@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tech Interviewer AI - Technical Interview Simulator</title>
+    
+    <!-- TailwindCSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom TailwindCSS configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                    },
+                    animation: {
+                        'bounce-slow': 'bounce 3s infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'spin-slow': 'spin 2s linear infinite',
+                    },
+                },
+            },
+        };
+    </script>
+    
+    <!-- Custom CSS -->
+    <style>
+        .gradient-bg {
+            background: linear-gradient(120deg, #e0f2fe 0%, #ffffff 100%);
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        .speaking-animation {
+            position: relative;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .speaking-bar {
+            background-color: #38bdf8;
+            width: 4px;
+            height: 100%;
+            margin: 0 2px;
+            border-radius: 5px;
+            animation: speaking-animation 0.5s ease infinite alternate;
+        }
+        
+        @keyframes speaking-animation {
+            0% {
+                height: 20%;
+            }
+            100% {
+                height: 100%;
+            }
+        }
+        
+        .speaking-bar:nth-child(1) {
+            animation-delay: 0.1s;
+        }
+        
+        .speaking-bar:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .speaking-bar:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+        
+        .speaking-bar:nth-child(4) {
+            animation-delay: 0.4s;
+        }
+        
+        .speaking-bar:nth-child(5) {
+            animation-delay: 0.5s;
+        }
+    </style>
+    
+    <!-- Audio recorder library -->
+    <script src="https://cdn.jsdelivr.net/npm/recorderjs@1.0.1/dist/recorder.min.js"></script>
+</head>
+
+<body class="gradient-bg min-h-screen">
+    <div class="container mx-auto px-4 py-8 flex flex-col min-h-screen">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl sm:text-5xl font-bold text-primary-800 drop-shadow-md">
+                Tech Interviewer AI
+            </h1>
+            <p class="text-lg text-gray-600 mt-2">
+                Practice technical interviews for your next job opportunity
+            </p>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="flex-grow flex flex-col items-center justify-center">
+            <!-- User Information Form -->
+            <div id="user-info-form" class="w-full max-w-3xl glass-effect rounded-xl shadow-xl p-6 mb-6">
+                <h2 class="text-2xl font-bold text-primary-700 mb-4">Your Information</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="user-name" class="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
+                        <input type="text" id="user-name" name="user-name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label for="user-email" class="block text-sm font-medium text-gray-700 mb-1">Your Email</label>
+                        <input type="email" id="user-email" name="user-email" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="w-full max-w-3xl glass-effect rounded-xl shadow-xl p-6 sm:p-8">
+                <!-- Conversation Area -->
+                <div id="conversation-area" class="mb-6 h-64 sm:h-80 overflow-y-auto p-4 bg-white rounded-lg">
+                    <div class="text-center text-gray-500 italic">
+                        Select a topic and skill level below, then click "Start Interview" to begin.
+                    </div>
+                </div>
+                
+                <!-- Settings Panel -->
+                <div class="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Interview Topic</label>
+                        <select id="interview-topic" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
+                            {% for key, value in topics.items() %}
+                                <option value="{{ key }}">{{ value }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Skill Level</label>
+                        <select id="skill-level" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
+                            {% for key, value in skill_levels.items() %}
+                                <option value="{{ key }}">{{ value }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Interview Mode</label>
+                        <select id="interview-mode" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
+                            <option value="interview">Professional Interview</option>
+                            <option value="learning">Learning & Explanations</option>
+                            <option value="child">Child-Friendly (5-year-old)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Voice Options</label>
+                        <select id="voice-option" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
+                            <option value="en-US-AriaNeural">Aria (Female, US)</option>
+                            <option value="en-US-GuyNeural">Guy (Male, US)</option>
+                            <option value="en-GB-SoniaNeural">Sonia (Female, UK)</option>
+                            <option value="en-GB-RyanNeural">Ryan (Male, UK)</option>
+                            <option value="en-AU-NatashaNeural">Natasha (Female, AU)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- User Information -->
+                <div id="user-info-container" class="mb-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Your Name (Optional)</label>
+                            <input type="text" id="user-name" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500" placeholder="Enter your name">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Your Email (Optional)</label>
+                            <input type="email" id="user-email" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500" placeholder="Enter your email">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Start Interview Button (for first time) -->
+                <div id="start-interview-container" class="mb-6">
+                    <button id="start-interview" class="w-full py-3 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50 transition duration-300 flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Start Interview
+                    </button>
+                </div>
+                
+                <!-- File Upload -->
+                <div class="mb-6 hidden" id="audio-upload-container">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Upload Audio Response (Optional)</label>
+                    <div class="border-dashed border-2 border-gray-300 rounded-lg p-4 text-center hover:bg-gray-50 transition duration-300 cursor-pointer" id="dropzone">
+                        <input type="file" id="file-upload" class="hidden" accept="audio/*,video/*">
+                        <div class="flex flex-col items-center justify-center">
+                            <svg class="w-10 h-10 text-primary-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            <p class="text-gray-700 mb-1">Drag and drop a file or click to select</p>
+                            <p class="text-xs text-gray-500" id="file-name">MP3, WAV, MP4, etc.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Text Input & Record Controls -->
+                <div class="flex flex-col space-y-4" id="response-container">
+                    <div class="flex space-x-2">
+                        <textarea id="text-input" class="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500" placeholder="Type your response here..." rows="3"></textarea>
+                        
+                        <div class="flex flex-col space-y-2">
+                            <!-- Record Audio Button -->
+                            <button id="record-button" class="px-3 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 transition duration-300">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                                </svg>
+                            </button>
+                            
+                            <!-- Send Button -->
+                            <button id="send-button" class="px-3 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50 transition duration-300">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- End Interview Button -->
+                    <div class="mt-2" id="end-interview-container">
+                        <button id="end-interview" class="w-full py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 transition duration-300 flex items-center justify-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            End Interview & Get Assessment
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Speaking Indicator (Hidden by default) -->
+                <div id="speaking-indicator" class="mt-4 flex items-center justify-center hidden">
+                    <div class="mr-2 text-primary-600">Interviewer is speaking:</div>
+                    <div class="speaking-animation">
+                        <div class="speaking-bar"></div>
+                        <div class="speaking-bar"></div>
+                        <div class="speaking-bar"></div>
+                        <div class="speaking-bar"></div>
+                        <div class="speaking-bar"></div>
+                    </div>
+                </div>
+                
+                <!-- Loading Indicator (Hidden by default) -->
+                <div id="loading-indicator" class="mt-4 text-center hidden">
+                    <div class="inline-block animate-spin-slow rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-600"></div>
+                    <p class="text-primary-600 mt-2" id="loading-text">Processing your request...</p>
+                </div>
+            </div>
+            
+            <!-- Features Section -->
+            <div class="w-full max-w-3xl mt-8">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    <div class="p-4 bg-white rounded-lg shadow-md">
+                        <div class="text-primary-600 text-xl mb-2">💼 Realistic Interviews</div>
+                        <p class="text-gray-600">Practice with realistic technical interview questions tailored to your skill level.</p>
+                    </div>
+                    <div class="p-4 bg-white rounded-lg shadow-md">
+                        <div class="text-primary-600 text-xl mb-2">🧠 Multiple Topics</div>
+                        <p class="text-gray-600">Choose from various technical fields including ML, Data Science, Python, and more.</p>
+                    </div>
+                    <div class="p-4 bg-white rounded-lg shadow-md">
+                        <div class="text-primary-600 text-xl mb-2">📊 Skill Assessment</div>
+                        <p class="text-gray-600">Get constructive feedback and assessment of your technical knowledge.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Footer -->
+        <footer class="mt-8 text-center text-gray-500 text-sm py-4">
+            <p>© 2025 Tech Interviewer AI. All rights reserved.</p>
+        </footer>
+    </div>
+    
+    <!-- Audio element for playback (hidden) -->
+    <audio id="response-audio" class="hidden"></audio>
+    
+    <!-- JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM Elements
+            const dropzone = document.getElementById('dropzone');
+            const fileUpload = document.getElementById('file-upload');
+            const fileName = document.getElementById('file-name');
+            const textInput = document.getElementById('text-input');
+            const sendButton = document.getElementById('send-button');
+            const recordButton = document.getElementById('record-button');
+            const startInterview = document.getElementById('start-interview');
+            const startInterviewContainer = document.getElementById('start-interview-container');
+            const responseContainer = document.getElementById('response-container');
+            const audioUploadContainer = document.getElementById('audio-upload-container');
+            const conversationArea = document.getElementById('conversation-area');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const loadingText = document.getElementById('loading-text');
+            const speakingIndicator = document.getElementById('speaking-indicator');
+            const responseAudio = document.getElementById('response-audio');
+            const interviewTopic = document.getElementById('interview-topic');
+            const skillLevel = document.getElementById('skill-level');
+            const voiceOption = document.getElementById('voice-option');
+            const interviewMode = document.getElementById('interview-mode');
+            const userName = document.getElementById('user-name');
+            const userEmail = document.getElementById('user-email');
+            const endInterviewButton = document.getElementById('end-interview');
+            const endInterviewContainer = document.getElementById('end-interview-container');
+            
+            // Conversation state
+            let conversationId = null;
+            let interviewStarted = false;
+            
+            // Initially hide the response container and end interview button until interview starts
+            responseContainer.classList.add('hidden');
+            endInterviewContainer.classList.add('hidden');
+            
+            // Start Interview Button Click Handler
+            startInterview.addEventListener('click', () => {
+                // Show loading indicator
+                setLoading(true, 'Initializing interview...');
+                
+                // Hide start button & show response inputs and end interview button
+                startInterviewContainer.classList.add('hidden');
+                responseContainer.classList.remove('hidden');
+                audioUploadContainer.classList.remove('hidden');
+                endInterviewContainer.classList.remove('hidden');
+                
+                // Create FormData for empty first message to get interview introduction
+                const formData = new FormData();
+                formData.append('text_input', '');
+                formData.append('interview_topic', interviewTopic.value);
+                formData.append('skill_level', skillLevel.value);
+                formData.append('interview_mode', interviewMode.value);
+                formData.append('voice_option', voiceOption.value);
+                
+                // Add user info if provided
+                if (userName.value) formData.append('user_name', userName.value);
+                if (userEmail.value) formData.append('user_email', userEmail.value);
+                
+                // Start the interview
+                startTechnicalInterview(formData);
+            });
+            
+            // End Interview Button Click Handler
+            endInterviewButton.addEventListener('click', async () => {
+                if (!conversationId) {
+                    showMessage('Please start an interview first.', 'error');
+                    return;
+                }
+                
+                // Confirm with user
+                if (!confirm('Are you sure you want to end this interview and get your final assessment?')) {
+                    return;
+                }
+                
+                // Show loading indicator
+                setLoading(true, 'Generating your final assessment...');
+                
+                try {
+                    // Create FormData for final assessment
+                    const formData = new FormData();
+                    formData.append('conversation_id', conversationId);
+                    formData.append('interview_topic', interviewTopic.value);
+                    formData.append('skill_level', skillLevel.value);
+                    formData.append('interview_mode', interviewMode.value);
+                    formData.append('voice_option', voiceOption.value);
+                    formData.append('end_interview', 'true');
+                    
+                    // Add user info if provided
+                    if (userName.value) formData.append('user_name', userName.value);
+                    if (userEmail.value) formData.append('user_email', userEmail.value);
+                    
+                    // Send the request
+                    const response = await fetch('/talk', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        // Add assessment to conversation
+                        addMessageToConversation(data.response, 'interviewer');
+                        
+                        // Play audio if available
+                        if (data.audio_url) {
+                            playResponseAudio(data.audio_url);
+                        } else {
+                            setLoading(false);
+                        }
+                        
+                        // Show message that interview has ended
+                        showMessage('Interview completed! You can now start a new interview with different settings.', 'info');
+                        
+                        // Reset interview state
+                        conversationId = null;
+                        
+                        // Show start button and hide input controls
+                        startInterviewContainer.classList.remove('hidden');
+                        responseContainer.classList.add('hidden');
+                        audioUploadContainer.classList.add('hidden');
+                        endInterviewContainer.classList.add('hidden');
+                    } else {
+                        showMessage(`Error: ${data.error || 'Could not generate assessment'}`, 'error');
+                        setLoading(false);
+                    }
+                } catch (error) {
+                    console.error('Error ending interview:', error);
+                    showMessage('Error: Could not generate assessment. Please try again.', 'error');
+                    setLoading(false);
+                }
+            });
+            
+            // File Upload Handling
+            dropzone.addEventListener('click', () => {
+                fileUpload.click();
+            });
+            
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('bg-gray-100');
+            });
+            
+            dropzone.addEventListener('dragleave', () => {
+                dropzone.classList.remove('bg-gray-100');
+            });
+            
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('bg-gray-100');
+                
+                if (e.dataTransfer.files.length) {
+                    fileUpload.files = e.dataTransfer.files;
+                    updateFileName();
+                }
+            });
+            
+            fileUpload.addEventListener('change', updateFileName);
+            
+            function updateFileName() {
+                if (fileUpload.files.length) {
+                    fileName.textContent = fileUpload.files[0].name;
+                    fileName.classList.remove('text-gray-500');
+                    fileName.classList.add('text-primary-600', 'font-medium');
+                } else {
+                    fileName.textContent = 'MP3, WAV, MP4, etc.';
+                    fileName.classList.remove('text-primary-600', 'font-medium');
+                    fileName.classList.add('text-gray-500');
+                }
+            }
+            
+            // Audio Recording
+            let audioRecorder;
+            let isRecording = false;
+            let audioChunks = [];
+            
+            recordButton.addEventListener('click', toggleRecording);
+            
+            async function toggleRecording() {
+                if (isRecording) {
+                    // Stop recording
+                    stopRecording();
+                } else {
+                    // Start recording
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        startRecording(stream);
+                    } catch (error) {
+                        console.error('Error accessing microphone:', error);
+                        showMessage('Error: Could not access microphone. Please check permissions.', 'error');
+                    }
+                }
+            }
+            
+            function startRecording(stream) {
+                audioChunks = [];
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const input = audioContext.createMediaStreamSource(stream);
+                audioRecorder = new Recorder(input);
+                
+                audioRecorder.record();
+                isRecording = true;
+                
+                // Update UI
+                recordButton.classList.remove('bg-red-500', 'hover:bg-red-600');
+                recordButton.classList.add('bg-gray-600', 'hover:bg-gray-700');
+                recordButton.innerHTML = `
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path>
+                    </svg>
+                `;
+                
+                showMessage('Recording... Click the button again to stop.', 'info');
+            }
+            
+            function stopRecording() {
+                audioRecorder.stop();
+                isRecording = false;
+                
+                // Update UI
+                recordButton.classList.remove('bg-gray-600', 'hover:bg-gray-700');
+                recordButton.classList.add('bg-red-500', 'hover:bg-red-600');
+                recordButton.innerHTML = `
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                    </svg>
+                `;
+                
+                // Get the audio data
+                audioRecorder.exportWAV((blob) => {
+                    const audioFile = new File([blob], "recording.wav", { type: "audio/wav" });
+                    
+                    // Create a FormData object for upload
+                    const formData = new FormData();
+                    formData.append('file', audioFile);
+                    formData.append('conversation_id', conversationId);
+                    formData.append('interview_topic', interviewTopic.value);
+                    formData.append('skill_level', skillLevel.value);
+                    formData.append('voice_option', voiceOption.value);
+                    
+                    // Upload the recording
+                    processAudioUpload(formData);
+                });
+            }
+            
+            // Send Button Click Handler
+            sendButton.addEventListener('click', () => {
+                const text = textInput.value.trim();
+                
+                if (text) {
+                    // Create FormData with text input
+                    const formData = new FormData();
+                    formData.append('text_input', text);
+                    formData.append('conversation_id', conversationId);
+                    formData.append('interview_topic', interviewTopic.value);
+                    formData.append('skill_level', skillLevel.value);
+                    formData.append('voice_option', voiceOption.value);
+                    
+                    // Process the text input
+                    processTextInput(formData);
+                } else if (fileUpload.files.length) {
+                    // Create FormData with file
+                    const formData = new FormData();
+                    formData.append('file', fileUpload.files[0]);
+                    formData.append('conversation_id', conversationId);
+                    formData.append('interview_topic', interviewTopic.value);
+                    formData.append('skill_level', skillLevel.value);
+                    formData.append('voice_option', voiceOption.value);
+                    
+                    // Process the file upload
+                    processFileUpload(formData);
+                } else {
+                    // Show error if no input provided
+                    showMessage('Please provide a response or upload an audio recording.', 'error');
+                }
+            });
+            
+            // Start technical interview
+            async function startTechnicalInterview(formData) {
+                try {
+                    // Clear conversation area
+                    clearConversationArea();
+                    
+                    // Send the request
+                    const response = await fetch('/talk', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        // Store conversation ID for future requests
+                        conversationId = data.conversation_id;
+                        interviewStarted = true;
+                        
+                        // Add interviewer introduction to conversation
+                        addMessageToConversation(data.response, 'interviewer');
+                        
+                        // Play audio if available
+                        if (data.audio_url) {
+                            playResponseAudio(data.audio_url);
+                        } else {
+                            setLoading(false);
+                        }
+                    } else {
+                        showMessage(`Error: ${data.error || 'Could not start interview'}`, 'error');
+                        setLoading(false);
+                        
+                        // Show start button again
+                        startInterviewContainer.classList.remove('hidden');
+                        responseContainer.classList.add('hidden');
+                        audioUploadContainer.classList.add('hidden');
+                    }
+                } catch (error) {
+                    console.error('Error starting interview:', error);
+                    showMessage('Error: Could not start interview. Please try again.', 'error');
+                    setLoading(false);
+                    
+                    // Show start button again
+                    startInterviewContainer.classList.remove('hidden');
+                    responseContainer.classList.add('hidden');
+                    audioUploadContainer.classList.add('hidden');
+                }
+            }
+            
+            // Process File Upload
+            async function processFileUpload(formData) {
+                // Show loading indicator
+                setLoading(true, 'Processing your audio...');
+                
+                try {
+                    // Add user message to conversation
+                    const userMessage = 'Uploaded audio recording...';
+                    addMessageToConversation(userMessage, 'user');
+                    
+                    // Send the request
+                    const response = await fetch('/talk', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    await handleResponse(response);
+                } catch (error) {
+                    console.error('Error processing file:', error);
+                    showMessage('Error: Could not process audio. Please try again.', 'error');
+                    setLoading(false);
+                }
+            }
+            
+            // Process Audio Upload
+            async function processAudioUpload(formData) {
+                // Show loading indicator
+                setLoading(true, 'Processing your recording...');
+                
+                try {
+                    // Add user message to conversation
+                    const userMessage = 'Recording audio...';
+                    addMessageToConversation(userMessage, 'user');
+                    
+                    // Send the request
+                    const response = await fetch('/talk', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    await handleResponse(response);
+                } catch (error) {
+                    console.error('Error processing recording:', error);
+                    showMessage('Error: Could not process recording. Please try again.', 'error');
+                    setLoading(false);
+                }
+            }
+            
+            // Process Text Input
+            async function processTextInput(formData) {
+                // Show loading indicator
+                setLoading(true, 'Processing your response...');
+                
+                try {
+                    // Add user message to conversation
+                    const userMessage = formData.get('text_input');
+                    addMessageToConversation(userMessage, 'user');
+                    
+                    // Clear the text input
+                    textInput.value = '';
+                    
+                    // Send the request
+                    const response = await fetch('/talk', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    await handleResponse(response);
+                } catch (error) {
+                    console.error('Error processing text:', error);
+                    showMessage('Error: Could not process response. Please try again.', 'error');
+                    setLoading(false);
+                }
+            }
+            
+            // Handle API Response
+            async function handleResponse(response) {
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.error) {
+                        showMessage(`Error: ${data.error}`, 'error');
+                        setLoading(false);
+                        return;
+                    }
+                    
+                    // Update conversation ID if provided
+                    if (data.conversation_id) {
+                        conversationId = data.conversation_id;
+                    }
+                    
+                    // If input was a file, show transcription
+                    if (data.input_type === 'audio' || data.input_type === 'video') {
+                        const transcription = data.transcription || 'Transcription not available';
+                        updateLastUserMessage(transcription);
+                    }
+                    
+                    // Add interviewer response to conversation
+                    const aiResponse = data.response || 'No response received';
+                    addMessageToConversation(aiResponse, 'interviewer');
+                    
+                    // Play audio if available
+                    if (data.audio_url) {
+                        playResponseAudio(data.audio_url);
+                    } else {
+                        setLoading(false);
+                    }
+                    
+                    // Clear file input
+                    fileUpload.value = '';
+                    fileName.textContent = 'MP3, WAV, MP4, etc.';
+                    fileName.classList.remove('text-primary-600', 'font-medium');
+                    fileName.classList.add('text-gray-500');
+                } else {
+                    console.error('Server error:', response.statusText);
+                    showMessage(`Error: ${response.status} ${response.statusText}`, 'error');
+                    setLoading(false);
+                }
+            }
+            
+            // Add Message to Conversation
+            function addMessageToConversation(message, sender) {
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('mb-4', 'p-3', 'rounded-lg', 'max-w-3/4');
+                
+                if (sender === 'user') {
+                    messageElement.classList.add('ml-auto', 'bg-primary-100', 'text-gray-800');
+                    messageElement.innerHTML = `
+                        <div class="font-medium mb-1">You</div>
+                        <div>${message}</div>
+                    `;
+                } else {
+                    messageElement.classList.add('mr-auto', 'bg-gray-100', 'text-gray-800');
+                    messageElement.innerHTML = `
+                        <div class="font-medium mb-1 text-primary-600">Tech Interviewer AI</div>
+                        <div>${message}</div>
+                    `;
+                }
+                
+                conversationArea.appendChild(messageElement);
+                conversationArea.scrollTop = conversationArea.scrollHeight;
+                
+                // Remove placeholder if it's the first message
+                const placeholder = conversationArea.querySelector('.text-center.text-gray-500');
+                if (placeholder) {
+                    placeholder.remove();
+                }
+            }
+            
+            // Clear Conversation Area
+            function clearConversationArea() {
+                conversationArea.innerHTML = '';
+            }
+            
+            // Update Last User Message (for transcriptions)
+            function updateLastUserMessage(message) {
+                const userMessages = conversationArea.querySelectorAll('.bg-primary-100');
+                if (userMessages.length > 0) {
+                    const lastUserMessage = userMessages[userMessages.length - 1];
+                    const messageContent = lastUserMessage.querySelector('div:last-child');
+                    messageContent.textContent = message;
+                }
+            }
+            
+            // Show Message (for errors/info)
+            function showMessage(message, type = 'info') {
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('p-3', 'rounded-lg', 'mb-4', 'text-center');
+                
+                if (type === 'error') {
+                    messageElement.classList.add('bg-red-100', 'text-red-700');
+                } else {
+                    messageElement.classList.add('bg-blue-100', 'text-blue-700');
+                }
+                
+                messageElement.textContent = message;
+                conversationArea.appendChild(messageElement);
+                conversationArea.scrollTop = conversationArea.scrollHeight;
+                
+                // Remove after 5 seconds
+                setTimeout(() => {
+                    messageElement.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+                    setTimeout(() => {
+                        messageElement.remove();
+                    }, 300);
+                }, 5000);
+            }
+            
+            // Set Loading State
+            function setLoading(isLoading, text = 'Processing...') {
+                if (isLoading) {
+                    loadingText.textContent = text;
+                    loadingIndicator.classList.remove('hidden');
+                    sendButton.disabled = true;
+                    sendButton.classList.add('opacity-50', 'cursor-not-allowed');
+                } else {
+                    loadingIndicator.classList.add('hidden');
+                    sendButton.disabled = false;
+                    sendButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            }
+            
+            // Play Response Audio
+            function playResponseAudio(audioUrl) {
+                responseAudio.src = audioUrl;
+                responseAudio.onloadedmetadata = () => {
+                    // Show speaking indicator
+                    speakingIndicator.classList.remove('hidden');
+                    
+                    // Play the audio
+                    responseAudio.play();
+                    
+                    // Hide loading indicator
+                    setLoading(false);
+                    
+                    // Hide speaking indicator when done
+                    responseAudio.onended = () => {
+                        speakingIndicator.classList.add('hidden');
+                    };
+                };
+                
+                responseAudio.onerror = () => {
+                    console.error('Error loading audio:', responseAudio.error);
+                    showMessage('Error: Could not play response audio.', 'error');
+                    setLoading(false);
+                    speakingIndicator.classList.add('hidden');
+                };
+            }
+            
+            // Keyboard shortcuts
+            textInput.addEventListener('keydown', (e) => {
+                // Send message with Ctrl+Enter or Cmd+Enter
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    sendButton.click();
+                }
+            });
+        });
+    </script>
+    <!-- App JS -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const conversationArea = document.getElementById('conversation-area');
+            const userInput = document.getElementById('user-input');
+            const submitButton = document.getElementById('submit-button');
+            const endInterviewButton = document.getElementById('end-interview-button');
+            const recordButton = document.getElementById('record-button');
+            const voiceUpload = document.getElementById('voice-upload');
+            const interviewTopic = document.getElementById('interview-topic');
+            const skillLevel = document.getElementById('skill-level');
+            const interviewMode = document.getElementById('interview-mode');
+            const voiceOption = document.getElementById('voice-option');
+            const userName = document.getElementById('user-name');
+            const userEmail = document.getElementById('user-email');
+            
+            // Variables
+            let conversationId = null;
+            let mediaRecorder = null;
+            let audioChunks = [];
+            let isRecording = false;
+            
+            // Initialize conversation
+            function initializeConversation() {
+                appendMessage('interviewer', 'Hello! I am your technical interviewer AI. Please introduce yourself and we can get started with the interview.', null);
+            }
+            
+            // Submit user input
+            async function submitUserInput(endInterview = false) {
+                // Get user information
+                const name = userName.value.trim();
+                const email = userEmail.value.trim();
+                
+                // Validate user information if this is the end of the interview
+                if (endInterview && (name === '' || email === '')) {
+                    alert('Please provide your name and email before ending the interview.');
+                    return;
+                }
+                
+                const text = userInput.value.trim();
+                const topic = interviewTopic.value;
+                const level = skillLevel.value;
+                const mode = interviewMode.value;
+                const voice = voiceOption.value;
+                
+                // Don't submit if no text and no recording/upload in progress
+                if (!text && !isRecording && !voiceUpload.files.length) {
+                    if (!endInterview) {
+                        return;
+                    }
+                }
+                
+                // Disable buttons during submission
+                submitButton.disabled = true;
+                endInterviewButton.disabled = true;
+                
+                // Show user message in the conversation
+                if (text) {
+                    appendMessage('user', text, null);
+                    userInput.value = '';
+                }
+                
+                try {
+                    const formData = new FormData();
+                    formData.append('interview_topic', topic);
+                    formData.append('skill_level', level);
+                    formData.append('interview_mode', mode);
+                    formData.append('voice_option', voice);
+                    formData.append('user_name', name);
+                    formData.append('user_email', email);
+                    formData.append('end_interview', endInterview);
+                    
+                    if (conversationId) {
+                        formData.append('conversation_id', conversationId);
+                    }
+                    
+                    if (text) {
+                        formData.append('text_input', text);
+                    } else if (voiceUpload.files.length) {
+                        formData.append('file', voiceUpload.files[0]);
+                        voiceUpload.value = null; // Clear the file input
+                    } else if (audioChunks.length) {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        formData.append('file', audioBlob, 'recording.webm');
+                        audioChunks = [];
+                    }
+                    
+                    // Spinner or loading indicator could be added here
+                    
+                    // Call API
+                    const response = await fetch('/talk', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    // Save conversation ID for future requests
+                    if (data.conversation_id) {
+                        conversationId = data.conversation_id;
+                    }
+                    
+                    // Display AI response
+                    appendMessage('interviewer', data.response, data.audio_url);
+                    
+                    // If this was the final assessment, disable inputs
+                    if (data.is_final_assessment) {
+                        disableInputsAfterAssessment();
+                    }
+                    
+                } catch (error) {
+                    console.error('Error:', error);
+                    appendMessage('system', `Error: ${error.message}`, null);
+                } finally {
+                    // Re-enable buttons
+                    submitButton.disabled = false;
+                    endInterviewButton.disabled = false;
+                }
+            }
+            
+            // Append a message to the conversation area
+            function appendMessage(sender, text, audioUrl) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${sender}-message mb-4 ${sender === 'user' ? 'text-right' : ''}`;
+                
+                // Message header with avatar
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'flex items-center mb-2';
+                
+                if (sender !== 'user') {
+                    // Avatar for non-user messages
+                    const avatarDiv = document.createElement('div');
+                    avatarDiv.className = 'w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center mr-2';
+                    
+                    const avatarIcon = document.createElement('span');
+                    if (sender === 'interviewer') {
+                        avatarIcon.textContent = '🤖';
+                    } else {
+                        avatarIcon.textContent = '⚙️';
+                    }
+                    
+                    avatarDiv.appendChild(avatarIcon);
+                    headerDiv.appendChild(avatarDiv);
+                }
+                
+                // Sender name
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'font-semibold';
+                if (sender === 'user') {
+                    nameSpan.textContent = 'You';
+                } else if (sender === 'interviewer') {
+                    nameSpan.textContent = 'Tech Interviewer AI';
+                } else {
+                    nameSpan.textContent = 'System';
+                }
+                
+                headerDiv.appendChild(nameSpan);
+                
+                if (sender === 'user') {
+                    // For user messages, add avatar at the end
+                    const avatarDiv = document.createElement('div');
+                    avatarDiv.className = 'w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center ml-2';
+                    avatarDiv.textContent = '👤';
+                    headerDiv.appendChild(avatarDiv);
+                }
+                
+                messageDiv.appendChild(headerDiv);
+                
+                // Message content
+                const contentDiv = document.createElement('div');
+                contentDiv.className = `message-content p-3 rounded-lg ${sender === 'user' ? 'bg-blue-100 ml-auto' : (sender === 'interviewer' ? 'bg-primary-50' : 'bg-gray-100')}`;
+                contentDiv.style.maxWidth = '80%';
+                contentDiv.style.width = 'fit-content';
+                
+                // Format and render the text with markdown-like formatting
+                const formattedText = formatText(text);
+                contentDiv.innerHTML = formattedText;
+                
+                messageDiv.appendChild(contentDiv);
+                
+                // Audio player for AI responses
+                if (audioUrl) {
+                    const audioDiv = document.createElement('div');
+                    audioDiv.className = 'mt-2';
+                    
+                    const audio = document.createElement('audio');
+                    audio.controls = true;
+                    audio.src = audioUrl;
+                    audio.className = 'w-full';
+                    
+                    audioDiv.appendChild(audio);
+                    messageDiv.appendChild(audioDiv);
+                }
+                
+                conversationArea.appendChild(messageDiv);
+                
+                // Scroll to bottom
+                conversationArea.scrollTop = conversationArea.scrollHeight;
+            }
+            
+            // Format text with simple markdown-like formatting
+            function formatText(text) {
+                if (!text) return '';
+                
+                // Replace code blocks
+                text = text.replace(/```(\w*)([\s\S]*?)```/g, '<pre class="bg-gray-800 text-white p-2 rounded"><code>$2</code></pre>');
+                
+                // Replace inline code
+                text = text.replace(/`([^`]+)`/g, '<code class="bg-gray-200 px-1 rounded">$1</code>');
+                
+                // Replace bold text
+                text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+                
+                // Replace italic text
+                text = text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+                
+                // Replace line breaks
+                text = text.replace(/\n/g, '<br>');
+                
+                return text;
+            }
+            
+            // Handle audio recording
+            function setupRecording() {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    console.error('Media devices not supported');
+                    recordButton.disabled = true;
+                    recordButton.textContent = 'Recording Not Supported';
+                    return;
+                }
+                
+                recordButton.addEventListener('click', toggleRecording);
+            }
+            
+            async function toggleRecording() {
+                if (isRecording) {
+                    // Stop recording
+                    mediaRecorder.stop();
+                    isRecording = false;
+                    recordButton.textContent = 'Start Recording';
+                    recordButton.classList.remove('bg-red-600', 'text-white');
+                    recordButton.classList.add('bg-red-50', 'text-red-700');
+                } else {
+                    // Start recording
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        mediaRecorder = new MediaRecorder(stream);
+                        
+                        mediaRecorder.ondataavailable = (event) => {
+                            if (event.data.size > 0) {
+                                audioChunks.push(event.data);
+                            }
+                        };
+                        
+                        mediaRecorder.onstop = () => {
+                            // Auto-submit when recording stops
+                            submitUserInput();
+                            
+                            // Stop tracks
+                            stream.getTracks().forEach(track => track.stop());
+                        };
+                        
+                        audioChunks = [];
+                        mediaRecorder.start();
+                        isRecording = true;
+                        recordButton.textContent = 'Stop Recording';
+                        recordButton.classList.remove('bg-red-50', 'text-red-700');
+                        recordButton.classList.add('bg-red-600', 'text-white');
+                    } catch (error) {
+                        console.error('Error accessing microphone:', error);
+                        appendMessage('system', 'Error accessing microphone. Please check your permissions.', null);
+                    }
+                }
+            }
+            
+            // Function to disable inputs after final assessment
+            function disableInputsAfterAssessment() {
+                userInput.disabled = true;
+                submitButton.disabled = true;
+                recordButton.disabled = true;
+                voiceUpload.disabled = true;
+                endInterviewButton.disabled = true;
+                
+                // Add a "new interview" button
+                const newInterviewBtn = document.createElement('button');
+                newInterviewBtn.textContent = 'Start New Interview';
+                newInterviewBtn.className = 'w-full sm:w-auto px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-md shadow focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition flex items-center justify-center mt-4';
+                newInterviewBtn.onclick = () => window.location.reload();
+                
+                const controlsDiv = submitButton.parentElement;
+                controlsDiv.appendChild(newInterviewBtn);
+                
+                // Show a message
+                appendMessage('system', 'The interview has ended. Your assessment is complete. You can start a new interview if you wish.', null);
+            }
+            
+            // Event listeners
+            submitButton.addEventListener('click', () => submitUserInput(false));
+            endInterviewButton.addEventListener('click', () => submitUserInput(true));
+            
+            userInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    submitUserInput(false);
+                }
+            });
+            
+            // File upload handling
+            voiceUpload.addEventListener('change', (e) => {
+                if (voiceUpload.files.length) {
+                    submitUserInput(false);
+                }
+            });
+            
+            // Initialize
+            setupRecording();
+            initializeConversation();
+        });
+    </script>
+</body>
+</html>

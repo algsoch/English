@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  english_talker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: algsoch/english-talker:latest
+    container_name: english_talker_app
+    ports:
+      - "3500:3500"
+    volumes:
+      - ./english_talker_app/uploads:/app/english_talker_app/uploads
+      - ./english_talker_app/static/audio:/app/english_talker_app/static/audio
+    environment:
+      - PORT=3500
+      - HOST=0.0.0.0
+      # You can add other environment variables here
+      # - API_KEY=your_api_key
+      # - DISCORD_WEBHOOK_URL=your_discord_webhook
+    restart: unless-stopped
+    command: python -m uvicorn english_talker_app.app.main:app --host 0.0.0.0 --port 3500
